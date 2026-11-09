@@ -1,0 +1,703 @@
+% ============================================================
+% Paquetes usados:
+%   \usepackage[utf8]{inputenc}
+%   \usepackage[T1]{fontenc}
+%   \usepackage[spanish]{babel}
+%   \usepackage{amsmath}
+%   \usepackage{booktabs}
+%   \usepackage{multirow}
+%   \usepackage{graphicx}
+% Las figuras deben estar en la misma carpeta que el .tex:
+%   fig_temperatura.png, fig_humedad.png, fig_velocidad.png
+% ============================================================
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+% Paquetes para el diagrama de bloques (Persona 1)
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, babel}
+% Evita el error "Incompatible glue units" de babel en español al
+% escribir $60\,\%$ (el espacio antes del % ya se pone a mano).
+\spanishplainpercent
+% Las tablas se llaman "Tabla" en lugar de "Cuadro", como en el texto.
+\addto\captionsspanish{\renewcommand{\tablename}{Tabla}}
+
+\begin{document}
+
+% ============================================================
+% PORTADA (Persona 1)
+% Los datos marcados con COMPLETAR deben llenarse en Overleaf.
+% ============================================================
+\begin{titlepage}
+\centering
+{\Large Universidad del Valle de Guatemala\par}
+\vspace{0.4cm}
+{\large Lógica Matemática\par}
+\vspace{0.2cm}
+{\large Sección XX\par} % COMPLETAR: número de sección
+\vfill
+{\LARGE\bfseries Sistema de control difuso para la velocidad de un ventilador\par}
+\vspace{0.6cm}
+{\large Aplicación de la lógica difusa\par}
+\vfill
+{\large\bfseries Integrantes\par}
+\vspace{0.3cm}
+% COMPLETAR: nombres y carnés de los integrantes
+{\large
+\begin{tabular}{ll}
+Juan Fernando Menéndez Guerra & Carné 174444 \\
+Nombre del integrante 2 & Carné 00000 \\
+Mishell Rosa Elvira Ciprian  & Carné 231169 \\
+Fernando Mendoza & Carné 19644 \\
+Nombre del integrante 5 & Carné 00000 \\
+\end{tabular}\par}
+\vfill
+\vspace{0.6cm}
+{\large Guatemala, \today\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+% INTRODUCCIÓN, CONTEXTO Y OBJETIVOS (Persona 1)
+% ============================================================
+\section{Introducción}
+
+En la vida diaria las personas toman decisiones a partir de descripciones imprecisas. Decimos que el día está algo caluroso, que el ambiente se siente muy húmedo o que conviene subirle un poco al ventilador, y aun así entendemos perfectamente lo que se quiere decir. La lógica clásica no se adapta bien a este tipo de razonamiento, ya que en ella una proposición solo puede ser verdadera o falsa.
+
+La lógica difusa, propuesta por Lotfi A. Zadeh en 1965~\cite{zadeh1965}, amplía esta idea al permitir que una afirmación sea verdadera en cierto grado, expresado como un número entre 0 y 1. Gracias a esto es posible trasladar a una computadora reglas formuladas con palabras, tal como las expresaría una persona. Por esta razón la lógica difusa se ha utilizado ampliamente en el control de electrodomésticos y de sistemas de climatización, donde se busca un comportamiento suave y cercano a la intuición humana.
+
+En este documento se aplica la lógica difusa vista en clase al diseño de un sistema que regula la velocidad de un ventilador según la temperatura y la humedad del ambiente. Se presentan el modelo del problema, la definición de las variables y sus conjuntos difusos, la base de reglas, un caso resuelto paso a paso, una simulación con distintos casos de prueba y, finalmente, las conclusiones y recomendaciones.
+
+\subsection{Contexto del problema}
+
+La mayoría de ventiladores domésticos funcionan con unas pocas velocidades fijas que el usuario debe seleccionar manualmente. Los modelos automáticos más sencillos utilizan un termostato con umbrales fijos: por ejemplo, el ventilador se enciende cuando la temperatura supera los $28\,^\circ$C y se apaga cuando baja de ese valor. Este enfoque tiene dos limitaciones importantes.
+
+La primera es que produce cambios bruscos. Con $27.9\,^\circ$C el ventilador permanece apagado y con $28.1\,^\circ$C funciona a toda su capacidad, aunque una persona no percibe ninguna diferencia real entre ambas temperaturas. La segunda es que solo toma en cuenta la temperatura, cuando la sensación de calor también depende de la humedad relativa. Si el aire está muy húmedo, el sudor se evapora con más dificultad y el cuerpo se enfría menos, por lo que una misma temperatura se percibe como más incómoda.
+
+Un controlador basado en lógica difusa permite atender ambos problemas. Por un lado, combina la temperatura y la humedad mediante reglas escritas en lenguaje cotidiano, como \emph{si la temperatura es caliente y la humedad es alta, entonces la velocidad debe ser alta}. Por otro lado, como los conjuntos difusos se traslapan, la velocidad cambia de forma gradual a medida que cambian las condiciones del ambiente. Esto resulta más cómodo para el usuario y evita que el ventilador funcione a máxima potencia cuando no es necesario.
+
+\subsection{Objetivos}
+
+\subsubsection*{Objetivo general}
+
+Diseñar y analizar un sistema de control basado en lógica difusa que determine la velocidad adecuada de un ventilador a partir de la temperatura y la humedad relativa del ambiente.
+
+\subsubsection*{Objetivos específicos}
+
+\begin{itemize}
+  \item Definir las variables de entrada y salida del sistema, junto con sus rangos, unidades y conjuntos difusos.
+  \item Construir una base de reglas SI-ENTONCES que relacione las condiciones del ambiente con la velocidad del ventilador, utilizando los operadores de Zadeh.
+  \item Resolver manualmente un caso numérico que muestre cada una de las etapas del proceso de inferencia.
+  \item Validar el modelo mediante una simulación con varios casos de prueba y compararlo con un sistema clásico de umbrales fijos.
+\end{itemize}
+
+% ============================================================
+% MARCO TEÓRICO (Persona 1)
+% ============================================================
+\section{Marco teórico}
+
+\subsection{Conjuntos difusos y variables lingüísticas}
+
+En la teoría clásica de conjuntos, un elemento pertenece o no pertenece a un conjunto, sin términos intermedios. Un conjunto difuso $A$, definido sobre un universo del discurso $X$, se describe mediante una función de pertenencia
+\[
+\mu_A : X \to [0, 1],
+\]
+que asigna a cada elemento $x$ un grado de pertenencia $\mu_A(x)$. Un valor de 0 indica que el elemento no pertenece al conjunto, un valor de 1 indica pertenencia total y los valores intermedios indican pertenencia parcial~\cite{zadeh1965}. Por ejemplo, una temperatura de $27\,^\circ$C puede considerarse templada en cierto grado y, al mismo tiempo, un poco caliente, sin que sea necesario elegir solo una de las dos opciones.
+
+Una variable lingüística es aquella cuyos valores son palabras en lugar de números. En este proyecto la temperatura puede tomar los valores \emph{fría}, \emph{templada} y \emph{caliente}, y cada uno de ellos se representa con un conjunto difuso sobre el rango de temperaturas considerado. Esto permite describir el comportamiento del sistema con el mismo vocabulario que usaría una persona.
+
+\subsection{Operadores de Zadeh}
+
+Para combinar grados de pertenencia se utilizan los operadores propuestos por Zadeh, que generalizan las operaciones de la lógica clásica:
+\begin{align*}
+\text{Conjunción (Y):} \quad & \mu_{A \cap B}(x) = \min\{\mu_A(x), \mu_B(x)\}, \\
+\text{Disyunción (O):} \quad & \mu_{A \cup B}(x) = \max\{\mu_A(x), \mu_B(x)\}, \\
+\text{Negación (NO):} \quad & \mu_{\bar{A}}(x) = 1 - \mu_A(x).
+\end{align*}
+Cuando los grados de pertenencia son únicamente 0 o 1, estos operadores producen los mismos resultados que la lógica clásica, por lo que esta puede verse como un caso particular de la lógica difusa.
+
+\subsection{Reglas difusas}
+
+El conocimiento del sistema se expresa mediante reglas de la forma
+\begin{center}
+SI $x$ es $A$ Y $y$ es $B$, ENTONCES $z$ es $C$,
+\end{center}
+donde la parte del SI se llama antecedente y la parte del ENTONCES se llama consecuente. Desde el punto de vista lógico, cada una de estas reglas corresponde a una cláusula de Horn, ya que reúne varias condiciones y tiene una única conclusión. A diferencia de la lógica clásica, una regla difusa no necesita cumplirse por completo para tener efecto: se activa en el mismo grado en que se cumple su antecedente. A ese valor se le llama fuerza de activación de la regla.
+
+\subsection{Inferencia de Mamdani y defuzzificación}
+
+El método de inferencia más utilizado en problemas de control es el propuesto por Mamdani y Assilian~\cite{mamdani1975}. Este método toma valores numéricos de entrada y los procesa en cuatro etapas: fuzzificación, evaluación de reglas, agregación y defuzzificación. En la evaluación de reglas, el conjunto difuso del consecuente de cada regla se recorta a la altura de su fuerza de activación mediante el operador mínimo. En la agregación, los conjuntos recortados de todas las reglas se combinan con el operador máximo para formar un único conjunto difuso de salida.
+
+Por último, la defuzzificación convierte ese conjunto en un solo número que puede aplicarse al sistema real. El método más común es el del centroide, que calcula el centro de gravedad del área bajo el conjunto de salida:
+\[
+z^{*} = \frac{\int z \, \mu(z) \, dz}{\int \mu(z) \, dz}.
+\]
+De forma intuitiva, $z^{*}$ es el punto en el que la figura formada por el conjunto de salida quedaría en equilibrio si se apoyara sobre él. Cuando el cálculo se hace a mano o en una computadora, las integrales suelen aproximarse con sumas sobre un conjunto de puntos del universo de salida.
+
+% ============================================================
+% DESCRIPCIÓN GENERAL DEL SISTEMA Y DIAGRAMA DE BLOQUES (Persona 1)
+% ============================================================
+\section{Descripción general del sistema}
+
+El sistema propuesto recibe dos mediciones del ambiente, la temperatura en grados Celsius y la humedad relativa en porcentaje, y entrega un solo valor: la velocidad a la que debe girar el ventilador, expresada como porcentaje de su velocidad máxima. Tanto las entradas como la salida son valores numéricos exactos, que en lógica difusa se conocen como valores \emph{crisp}. Entre la entrada y la salida, la información pasa por las etapas del método de Mamdani descritas en la sección anterior, como se muestra en el siguiente diagrama de bloques.
+
+\begin{center}
+\begin{minipage}{\textwidth}
+\centering
+\begin{tikzpicture}[
+  node distance=0.55cm,
+  etapa/.style={rectangle, rounded corners=3pt, draw=blue!60!black, fill=blue!8,
+                thick, text width=5.6cm, minimum height=0.9cm, align=center,
+                font=\small},
+  extremo/.style={rectangle, draw=black!70, fill=black!8, thick,
+                  text width=5.6cm, minimum height=0.9cm, align=center,
+                  font=\small},
+  conocimiento/.style={rectangle, draw=black!60, dashed, text width=3cm,
+                       minimum height=1cm, align=center, font=\footnotesize},
+  flecha/.style={-{Stealth[length=2.5mm]}, thick},
+  apoyo/.style={-{Stealth[length=2mm]}, dashed, black!60},
+  etiqueta/.style={right, font=\footnotesize\itshape, text=black!70}
+]
+  % Flujo principal
+  \node[extremo] (entrada) {\textbf{Entradas crisp}\\ Temperatura ($^\circ$C) y humedad (\%)};
+  \node[etapa, below=of entrada] (fuzz) {\textbf{Fuzzificación}};
+  \node[etapa, below=of fuzz] (reglas) {\textbf{Evaluación de reglas}\\ (inferencia)};
+  \node[etapa, below=of reglas] (agreg) {\textbf{Agregación}\\ (operador máximo)};
+  \node[etapa, below=of agreg] (defuzz) {\textbf{Defuzzificación}\\ (método del centroide)};
+  \node[extremo, below=of defuzz] (salida) {\textbf{Salida crisp}\\ Velocidad del ventilador (\%)};
+
+  \draw[flecha] (entrada) -- node[etiqueta] {valores medidos} (fuzz);
+  \draw[flecha] (fuzz) -- node[etiqueta] {grados de pertenencia} (reglas);
+  \draw[flecha] (reglas) -- node[etiqueta] {conjuntos de salida recortados} (agreg);
+  \draw[flecha] (agreg) -- node[etiqueta] {conjunto difuso de salida} (defuzz);
+  \draw[flecha] (defuzz) -- node[etiqueta] {valor numérico único} (salida);
+
+  % Base de conocimiento
+  \node[conocimiento, left=1.2cm of fuzz] (fp) {Funciones de pertenencia};
+  \node[conocimiento, left=1.2cm of reglas] (br) {Base de reglas SI-ENTONCES};
+  \draw[apoyo] (fp) -- (fuzz);
+  \draw[apoyo] (br) -- (reglas);
+\end{tikzpicture}\par
+\small Diagrama de bloques del sistema de control difuso.
+\end{minipage}
+\end{center}
+
+A continuación se describe la función de cada bloque:
+\begin{enumerate}
+  \item \textbf{Entradas crisp.} Son los valores medidos por los sensores, por ejemplo $28\,^\circ$C de temperatura y $60\,\%$ de humedad relativa.
+  \item \textbf{Fuzzificación.} Cada entrada se evalúa en las funciones de pertenencia de su variable. La temperatura se traduce en grados de pertenencia a los conjuntos Fría, Templada y Caliente, y la humedad en grados de pertenencia a los conjuntos Baja, Media y Alta.
+  \item \textbf{Evaluación de reglas.} Con los grados obtenidos se evalúa cada regla de la base de reglas. La fuerza de activación de cada una se calcula con los operadores de Zadeh, y el conjunto de velocidad de su consecuente (Baja, Media o Alta) se recorta a esa altura.
+  \item \textbf{Agregación.} Los conjuntos recortados de todas las reglas se combinan con el operador máximo. El resultado es un único conjunto difuso que resume la recomendación de todas las reglas.
+  \item \textbf{Defuzzificación.} Mediante el método del centroide, el conjunto agregado se convierte en un solo número.
+  \item \textbf{Salida crisp.} Es la velocidad final del ventilador, un valor entre 0 y $100\,\%$ que se envía al motor.
+\end{enumerate}
+
+Las funciones de pertenencia y la base de reglas forman la base de conocimiento del sistema. Las primeras se detallan en la siguiente sección y la segunda en la Sección~\ref{sec:reglas}.
+
+\section{Definición de variables, fuzzificación y conjuntos difusos}
+
+\subsection{Variables del sistema}
+
+El sistema de control difuso del ventilador cuenta con dos variables de entrada y una de salida. La Tabla~\ref{tab:variables} resume sus universos del discurso, unidades y conjuntos difusos.
+
+\begin{table}[h]
+\centering
+\caption{Variables de entrada y salida del sistema.}
+\label{tab:variables}
+\begin{tabular}{llcp{2.6cm}l}
+\toprule
+\textbf{Variable} & \textbf{Tipo} & \textbf{Universo} & \textbf{Unidad} & \textbf{Conjuntos difusos} \\
+\midrule
+Temperatura & Entrada & $[10, 40]$ & $^\circ$C & Fría, Templada, Caliente \\
+Humedad relativa & Entrada & $[0, 100]$ & \% & Baja, Media, Alta \\
+Velocidad del ventilador & Salida & $[0, 100]$ & \% de la velocidad máxima & Baja, Media, Alta \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Funciones de pertenencia}
+
+Se utilizaron funciones trapezoidales y triangulares. La función trapezoidal con parámetros $(a, b, c, d)$ se define como:
+\[
+\mu(x) =
+\begin{cases}
+0, & x \le a \ \text{ o } \ x \ge d, \\[4pt]
+\dfrac{x - a}{b - a}, & a < x < b, \\[8pt]
+1, & b \le x \le c, \\[4pt]
+\dfrac{d - x}{d - c}, & c < x < d.
+\end{cases}
+\]
+
+La función triangular $(a, b, c)$ es el caso particular en que $b = c$. En los conjuntos de los extremos se cumple $a = b$ o $c = d$, por lo que tienen una sola pendiente. Los parámetros de cada conjunto se muestran en la Tabla~\ref{tab:parametros}.
+
+\begin{table}[h]
+\centering
+\caption{Parámetros de las funciones de pertenencia.}
+\label{tab:parametros}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Variable} & \textbf{Conjunto} & \textbf{Tipo} & \textbf{Parámetros} \\
+\midrule
+\multirow{3}{*}{Temperatura ($^\circ$C)} & Fría & Trapecio & $(10, 10, 16, 22)$ \\
+ & Templada & Triángulo & $(18, 24, 30)$ \\
+ & Caliente & Trapecio & $(26, 32, 40, 40)$ \\
+\midrule
+\multirow{3}{*}{Humedad (\%)} & Baja & Trapecio & $(0, 0, 25, 50)$ \\
+ & Media & Triángulo & $(30, 50, 70)$ \\
+ & Alta & Trapecio & $(50, 75, 100, 100)$ \\
+\midrule
+\multirow{3}{*}{Velocidad (\%)} & Baja & Trapecio & $(0, 0, 20, 45)$ \\
+ & Media & Triángulo & $(30, 50, 70)$ \\
+ & Alta & Trapecio & $(55, 80, 100, 100)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las Figuras 1, 2 y 3 muestran las funciones de pertenencia de cada variable. En las dos primeras se marcan los valores de ejemplo usados en la siguiente subsección.
+
+\begin{center}
+\begin{minipage}{\textwidth}
+\centering
+\includegraphics[width=0.7\textwidth]{fig_temperatura.png}\par
+\small Figura 1. Funciones de pertenencia de la temperatura.
+\end{minipage}
+
+\vspace{1em}
+
+\begin{minipage}{\textwidth}
+\centering
+\includegraphics[width=0.7\textwidth]{fig_humedad.png}\par
+\small Figura 2. Funciones de pertenencia de la humedad relativa.
+\end{minipage}
+
+\vspace{1em}
+
+\begin{minipage}{\textwidth}
+\centering
+\includegraphics[width=0.7\textwidth]{fig_velocidad.png}\par
+\small Figura 3. Funciones de pertenencia de la velocidad del ventilador (variable de salida).
+\end{minipage}
+\end{center}
+
+\subsection{Fuzzificación}
+
+La fuzzificación es el primer paso del algoritmo de control difuso. Consiste en tomar cada variable de entrada \emph{crisp}, medida por los sensores, y evaluarla en las funciones de pertenencia de sus conjuntos lingüísticos para obtener grados de pertenencia en el intervalo $[0, 1]$. A diferencia de un sistema clásico, donde un valor pertenece o no pertenece a un conjunto, aquí un mismo valor puede pertenecer parcialmente a varios conjuntos a la vez.
+
+Por ejemplo, para una temperatura de $28\,^\circ$C y una humedad de $60\,\%$:
+\begin{align*}
+\mu_{\text{Fría}}(28) &= 0, &
+\mu_{\text{Templada}}(28) &= \frac{30 - 28}{30 - 24} = 0.33, &
+\mu_{\text{Caliente}}(28) &= \frac{28 - 26}{32 - 26} = 0.33, \\[6pt]
+\mu_{\text{Baja}}(60) &= 0, &
+\mu_{\text{Media}}(60) &= \frac{70 - 60}{70 - 50} = 0.50, &
+\mu_{\text{Alta}}(60) &= \frac{60 - 50}{75 - 50} = 0.40.
+\end{align*}
+
+Estos grados de pertenencia son los valores que se usan como entrada en las cláusulas de Horn de la base de reglas.
+
+\subsection{Justificación de los conjuntos elegidos}
+
+\begin{enumerate}
+  \item \textbf{Tres conjuntos por variable.} Son suficientes para describir el problema con términos que una persona usaría de forma natural (fría, templada, caliente) y mantienen la base de reglas manejable: con dos entradas de tres conjuntos cada una resultan 9 combinaciones.
+  \item \textbf{Formas triangulares y trapezoidales.} Son simples de calcular y de interpretar, y su costo computacional es bajo, lo que las hace adecuadas para un controlador sencillo.
+  \item \textbf{Conjuntos de los extremos con forma de trapecio.} Permiten que los valores extremos tengan pertenencia plena. Por ejemplo, cualquier temperatura menor o igual a $16\,^\circ$C es completamente fría.
+  \item \textbf{Traslapes entre conjuntos vecinos.} Los conjuntos se superponen parcialmente (por ejemplo, entre $18$ y $22\,^\circ$C se es a la vez algo fría y algo templada), lo que hace que la transición entre estados sea gradual y que la velocidad del ventilador no cambie bruscamente.
+  \item \textbf{Universos del discurso.} El rango de temperatura de $10$ a $40\,^\circ$C abarca las condiciones ambientales habituales en las que se usaría un ventilador. La humedad relativa se define en su rango natural de $0$ a $100\,\%$. La velocidad se expresa como porcentaje de la velocidad máxima para que el modelo no dependa de un ventilador en particular.
+\end{enumerate}
+
+% ============================================================
+% SECCIONES PENDIENTES (estructura preparada por la Persona 1)
+% Cada persona pega su parte debajo del título correspondiente.
+% ============================================================
+
+\section{Base de reglas}
+\label{sec:reglas}
+% Persona 3: base de reglas SI-ENTONCES con operadores de Zadeh
+% (min, max, NOT), tabla de reglas y justificación de cada regla.
+
+La base de reglas relaciona la temperatura y la humedad relativa con la
+velocidad del ventilador. Se utilizan los conjuntos definidos en la sección
+anterior: Fría, Templada y Caliente para la temperatura; Baja, Media y Alta
+para la humedad; y Baja, Media y Alta para la velocidad. Las reglas propuestas
+constituyen una política de control ilustrativa del proyecto; no representan
+umbrales de confort validados experimentalmente.
+
+La temperatura es el criterio principal: si el ambiente es frío se recomienda
+una velocidad baja; si es templado se recomienda una velocidad media, que
+aumenta a alta cuando la humedad es alta; y si es caliente se recomienda una
+velocidad alta. La humedad modifica la decisión en condiciones templadas,
+porque una humedad elevada dificulta la evaporación del sudor. Mantener la
+misma salida para varias condiciones de humedad es una decisión del diseño
+y no implica que esa variable se haya omitido.
+
+\subsection{Tabla de reglas SI--ENTONCES}
+
+Con tres conjuntos de temperatura y tres de humedad se obtienen nueve
+combinaciones básicas. En todas las reglas de la Tabla~\ref{tab:reglas_p3},
+las dos condiciones del antecedente se conectan mediante Y.
+
+\begin{table}[htbp]
+\centering
+\caption{Base de reglas del controlador difuso.}
+\label{tab:reglas_p3}
+\begin{tabular}{clll}
+\toprule
+\textbf{Regla} & \textbf{SI temperatura es} & \textbf{Y humedad es}
+& \textbf{ENTONCES velocidad es} \\
+\midrule
+R1 & Fría     & Baja  & Baja  \\
+R2 & Fría     & Media & Baja  \\
+R3 & Fría     & Alta  & Baja  \\
+R4 & Templada & Baja  & Media \\
+R5 & Templada & Media & Media \\
+R6 & Templada & Alta  & Alta  \\
+R7 & Caliente & Baja  & Alta  \\
+R8 & Caliente & Media & Alta  \\
+R9 & Caliente & Alta  & Alta  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Por ejemplo, R6 se lee: \emph{SI la temperatura es Templada Y la humedad es
+Alta, ENTONCES la velocidad del ventilador es Alta}. Las reglas pueden
+activarse simultáneamente debido al traslape entre los conjuntos difusos.
+
+\subsection{Justificación de cada regla}
+
+\begin{enumerate}
+\item \textbf{R1: Fría Y Baja $\rightarrow$ Baja.}
+La temperatura fría y la humedad baja no justifican una ventilación intensa;
+se mantiene una circulación de aire reducida.
+
+\item \textbf{R2: Fría Y Media $\rightarrow$ Baja.}
+Una humedad media no cambia la decisión de mantener velocidad baja cuando
+la temperatura es fría.
+
+\item \textbf{R3: Fría Y Alta $\rightarrow$ Baja.}
+Aunque la humedad sea alta, el diseño da prioridad a la temperatura fría
+para evitar una ventilación excesiva. Esta regla no pretende reducir la
+humedad del ambiente: el ventilador no es un deshumidificador.
+
+\item \textbf{R4: Templada Y Baja $\rightarrow$ Media.}
+En un ambiente templado se propone una circulación intermedia, suficiente
+para aumentar el movimiento del aire sin recomendar velocidad alta.
+
+\item \textbf{R5: Templada Y Media $\rightarrow$ Media.}
+Las dos entradas presentan condiciones intermedias, por lo que se conserva
+una velocidad media.
+
+\item \textbf{R6: Templada Y Alta $\rightarrow$ Alta.}
+La humedad alta dificulta la evaporación del sudor; por ello se aumenta la
+velocidad recomendada respecto de las otras condiciones templadas.
+
+\item \textbf{R7: Caliente Y Baja $\rightarrow$ Alta.}
+La temperatura caliente es suficiente para recomendar velocidad alta,
+aunque la humedad sea baja.
+
+\item \textbf{R8: Caliente Y Media $\rightarrow$ Alta.}
+Se mantiene la velocidad alta porque la temperatura caliente sigue siendo
+el factor predominante.
+
+\item \textbf{R9: Caliente Y Alta $\rightarrow$ Alta.}
+La combinación de temperatura caliente y humedad alta recibe la mayor
+categoría de velocidad disponible en el modelo.
+\end{enumerate}
+
+\subsection{Evaluación con los operadores de Zadeh}
+
+Sean $T$ la temperatura medida, $H$ la humedad relativa y $v$ la velocidad
+del ventilador. Para abreviar, $t_F$, $t_M$ y $t_C$ representan los grados de
+pertenencia de $T$ a Fría, Templada y Caliente; $h_B$, $h_M$ y $h_A$
+representan los grados de pertenencia de $H$ a Baja, Media y Alta.
+
+\subsubsection*{Conjunción Y: operador mínimo}
+
+La fuerza de activación $\alpha_i$ de cada regla es el mínimo de los grados
+de sus dos antecedentes:
+\[
+\begin{array}{lll}
+\alpha_1=\min(t_F,h_B), & \alpha_2=\min(t_F,h_M), & \alpha_3=\min(t_F,h_A),\\[3pt]
+\alpha_4=\min(t_M,h_B), & \alpha_5=\min(t_M,h_M), & \alpha_6=\min(t_M,h_A),\\[3pt]
+\alpha_7=\min(t_C,h_B), & \alpha_8=\min(t_C,h_M), & \alpha_9=\min(t_C,h_A).
+\end{array}
+\]
+Una regla se activa parcialmente cuando $0<\alpha_i<1$ y no contribuye
+a la salida cuando $\alpha_i=0$.
+
+\subsubsection*{Disyunción O: operador máximo}
+
+Para dos condiciones con grados $a$ y $b$, el grado de su disyunción es
+$\max(a,b)$. Este operador permite agrupar reglas con el mismo consecuente.
+Por ejemplo, R4 y R5 se pueden expresar conjuntamente como:
+\begin{quote}
+SI la temperatura es Templada Y (la humedad es Baja O la humedad es Media),
+ENTONCES la velocidad es Media.
+\end{quote}
+Su activación es
+\[
+\min\bigl(t_M,\max(h_B,h_M)\bigr)
+=\max\bigl(\min(t_M,h_B),\min(t_M,h_M)\bigr)
+=\max(\alpha_4,\alpha_5).
+\]
+Esta es una forma equivalente de evaluar R4 y R5, no una regla adicional.
+
+\subsubsection*{Negación NO: complemento}
+
+El operador de negación se calcula como
+\[
+\mu_{\text{NO Fría}}(T)=1-\mu_{\text{Fría}}(T)=1-t_F.
+\]
+NO Fría no debe sustituirse por Caliente: por ejemplo, a $24\,^\circ$C,
+NO Fría tiene grado 1, pero Caliente tiene grado 0.
+
+Para incorporar explícitamente NO en una regla sin cambiar la política
+de la tabla, R9 se puede escribir como:
+\begin{quote}
+SI la temperatura es Caliente Y la humedad es Alta Y la temperatura es
+NO Fría, ENTONCES la velocidad es Alta.
+\end{quote}
+Su activación queda
+\[
+\alpha_9=\min(t_C,h_A,1-t_F)=\min(t_C,h_A).
+\]
+La igualdad se cumple con las funciones del proyecto: Fría tiene pertenencia
+positiva solamente por debajo de $22\,^\circ$C y Caliente solamente por
+encima de $26\,^\circ$C. Por tanto, siempre que $t_C>0$ se tiene $t_F=0$
+y $1-t_F=1$; cuando $t_C=0$, ambas expresiones valen cero. La condición
+NO Fría es redundante en este diseño y se incluye para mostrar el operador
+sin modificar las nueve combinaciones originales.
+
+\subsection{Aplicación de los consecuentes y agregación}
+
+En la inferencia de Mamdani, si $C_i$ es el conjunto de velocidad indicado
+por la regla $i$, su consecuente se recorta con el mínimo:
+\[
+\mu_i(v)=\min\bigl(\alpha_i,\mu_{C_i}(v)\bigr).
+\]
+Los resultados de todas las reglas se agregan mediante el máximo:
+\[
+\mu_{\mathrm{salida}}(v)=\max_{i=1,\ldots,9}\mu_i(v).
+\]
+Como varias reglas comparten un consecuente, también se pueden calcular
+primero las alturas de activación de cada categoría de velocidad:
+\begin{align*}
+\beta_B&=\max(\alpha_1,\alpha_2,\alpha_3),\\
+\beta_M&=\max(\alpha_4,\alpha_5),\\
+\beta_A&=\max(\alpha_6,\alpha_7,\alpha_8,\alpha_9).
+\end{align*}
+Así, la salida agregada se obtiene de forma equivalente como
+\[
+\mu_{\mathrm{salida}}(v)=\max\left\{
+\min\bigl(\beta_B,\mu_{\text{Baja}}(v)\bigr),
+\min\bigl(\beta_M,\mu_{\text{Media}}(v)\bigr),
+\min\bigl(\beta_A,\mu_{\text{Alta}}(v)\bigr)
+\right\}.
+\]
+Este conjunto se entrega a la etapa de defuzzificación. Las alturas
+$\beta_B$, $\beta_M$ y $\beta_A$ son grados de activación, no porcentajes
+finales de velocidad.
+
+\section{Caso numérico resuelto a mano}
+\label{sec:caso}
+% Persona 4: antecedentes, implicación, agregación y centroide,
+% con la explicación paso a paso del cálculo.
+
+Para mostrar cómo trabaja el controlador se resuelve a mano un caso concreto, siguiendo una por una las etapas del método de Mamdani. Se toman los mismos valores usados en la sección de fuzzificación: una temperatura $T = 28\,^\circ$C y una humedad relativa $H = 60\,\%$. Este caso resulta especialmente ilustrativo porque ambos valores caen en zonas de traslape entre conjuntos, de modo que varias reglas se activan al mismo tiempo y se puede apreciar el carácter gradual del razonamiento difuso. Para evitar errores de redondeo acumulados se trabaja con fracciones exactas y solo se redondea el resultado final.
+
+\subsection{Paso 1: evaluación de los antecedentes}
+
+El primer paso consiste en obtener el grado de pertenencia de cada entrada a sus conjuntos difusos, usando los parámetros de la Tabla~\ref{tab:parametros}. En el caso de la temperatura, $28\,^\circ$C queda fuera del conjunto Fría, cuyo soporte termina en $22\,^\circ$C; se ubica en la pendiente descendente de Templada, que va de $24$ a $30\,^\circ$C, y en la pendiente ascendente de Caliente, que va de $26$ a $32\,^\circ$C:
+\[
+t_F = \mu_{\text{Fría}}(28) = 0, \qquad
+t_M = \mu_{\text{Templada}}(28) = \frac{30 - 28}{30 - 24} = \frac{1}{3}, \qquad
+t_C = \mu_{\text{Caliente}}(28) = \frac{28 - 26}{32 - 26} = \frac{1}{3}.
+\]
+De forma análoga, una humedad de $60\,\%$ supera el límite de $50\,\%$ del conjunto Baja, está en la pendiente descendente de Media y en la pendiente ascendente de Alta:
+\[
+h_B = \mu_{\text{Baja}}(60) = 0, \qquad
+h_M = \mu_{\text{Media}}(60) = \frac{70 - 60}{70 - 50} = \frac{1}{2}, \qquad
+h_A = \mu_{\text{Alta}}(60) = \frac{60 - 50}{75 - 50} = \frac{2}{5}.
+\]
+Estos valores coinciden con los obtenidos en la sección de fuzzificación, donde $1/3$ aparece redondeado como $0.33$. Se observa que la temperatura de $28\,^\circ$C es, en igual medida, algo templada y algo caliente, mientras que la humedad pertenece un poco más al conjunto Media que al conjunto Alta.
+
+\subsection{Paso 2: fuerza de activación de las reglas}
+
+Con los grados anteriores se evalúa cada una de las nueve reglas de la Tabla~\ref{tab:reglas_p3}. Como los dos antecedentes están unidos por Y, la fuerza de activación de cada regla se calcula con el operador mínimo de Zadeh. Los resultados se presentan en la Tabla~\ref{tab:activacion}.
+
+\begin{table}[htbp]
+\centering
+\caption{Fuerza de activación de las reglas para $T = 28\,^\circ$C y $H = 60\,\%$.}
+\label{tab:activacion}
+\begin{tabular}{cllcl}
+\toprule
+\textbf{Regla} & \textbf{Antecedente} & \textbf{Cálculo} & $\boldsymbol{\alpha_i}$ & \textbf{Consecuente} \\
+\midrule
+R1 & Fría Y Baja         & $\min(0, 0)$                         & $0$           & Baja  \\
+R2 & Fría Y Media        & $\min(0, \tfrac{1}{2})$              & $0$           & Baja  \\
+R3 & Fría Y Alta         & $\min(0, \tfrac{2}{5})$              & $0$           & Baja  \\
+R4 & Templada Y Baja     & $\min(\tfrac{1}{3}, 0)$              & $0$           & Media \\
+R5 & Templada Y Media    & $\min(\tfrac{1}{3}, \tfrac{1}{2})$   & $\tfrac{1}{3}$ & Media \\
+R6 & Templada Y Alta     & $\min(\tfrac{1}{3}, \tfrac{2}{5})$   & $\tfrac{1}{3}$ & Alta  \\
+R7 & Caliente Y Baja     & $\min(\tfrac{1}{3}, 0)$              & $0$           & Alta  \\
+R8 & Caliente Y Media    & $\min(\tfrac{1}{3}, \tfrac{1}{2})$   & $\tfrac{1}{3}$ & Alta  \\
+R9 & Caliente Y Alta     & $\min(\tfrac{1}{3}, \tfrac{2}{5})$   & $\tfrac{1}{3}$ & Alta  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Solo cuatro reglas se activan: R5, R6, R8 y R9, todas con fuerza $1/3$. En las cuatro el factor limitante es la temperatura, ya que su grado de pertenencia ($1/3$) es menor que los de la humedad ($1/2$ y $2/5$). Las demás reglas tienen al menos un antecedente con grado cero y, por lo tanto, no aportan nada a la salida.
+
+Agrupando las reglas según su consecuente, como se explicó en la Sección~\ref{sec:reglas}, se obtienen las alturas de activación de cada categoría de velocidad:
+\begin{align*}
+\beta_B &= \max(\alpha_1, \alpha_2, \alpha_3) = \max(0, 0, 0) = 0, \\
+\beta_M &= \max(\alpha_4, \alpha_5) = \max\left(0, \tfrac{1}{3}\right) = \tfrac{1}{3}, \\
+\beta_A &= \max(\alpha_6, \alpha_7, \alpha_8, \alpha_9) = \max\left(\tfrac{1}{3}, 0, \tfrac{1}{3}, \tfrac{1}{3}\right) = \tfrac{1}{3}.
+\end{align*}
+Conviene notar que, aunque tres reglas recomiendan velocidad Alta, la altura $\beta_A$ no se suma: el operador máximo toma la activación más fuerte, de modo que varias reglas que coinciden no refuerzan la conclusión más allá del valor de la mayor de ellas.
+
+\subsection{Paso 3: implicación}
+
+En la implicación de Mamdani, cada conjunto de salida se recorta a la altura de su activación mediante el operador mínimo, $\mu'_C(v) = \min\bigl(\beta_C, \mu_C(v)\bigr)$. Como $\beta_B = 0$, el conjunto Baja queda completamente anulado y desaparece del cálculo.
+
+Para el conjunto Media, triángulo $(30, 50, 70)$, hay que encontrar los puntos donde sus pendientes alcanzan la altura $1/3$. En la pendiente ascendente, $\frac{v - 30}{20} = \frac{1}{3}$ da $v = \frac{110}{3} \approx 36.67$, y en la descendente, $\frac{70 - v}{20} = \frac{1}{3}$ da $v = \frac{190}{3} \approx 63.33$. El conjunto recortado queda como un trapecio:
+\[
+\mu'_{\text{Media}}(v) =
+\begin{cases}
+0, & v \le 30 \ \text{ o } \ v \ge 70, \\[4pt]
+\dfrac{v - 30}{20}, & 30 < v < \frac{110}{3}, \\[8pt]
+\dfrac{1}{3}, & \frac{110}{3} \le v \le \frac{190}{3}, \\[8pt]
+\dfrac{70 - v}{20}, & \frac{190}{3} < v < 70.
+\end{cases}
+\]
+
+Para el conjunto Alta, trapecio $(55, 80, 100, 100)$, la pendiente ascendente alcanza la altura $1/3$ cuando $\frac{v - 55}{25} = \frac{1}{3}$, es decir, en $v = \frac{190}{3} \approx 63.33$. A partir de ese punto el conjunto queda truncado en $1/3$ hasta el final del universo:
+\[
+\mu'_{\text{Alta}}(v) =
+\begin{cases}
+0, & v \le 55, \\[4pt]
+\dfrac{v - 55}{25}, & 55 < v < \frac{190}{3}, \\[8pt]
+\dfrac{1}{3}, & \frac{190}{3} \le v \le 100.
+\end{cases}
+\]
+Resulta interesante que ambos conjuntos recortados alcanzan la altura $1/3$ exactamente en el mismo punto, $v = 190/3$, donde Media empieza a descender y Alta termina de subir.
+
+\subsection{Paso 4: agregación}
+
+La agregación combina los conjuntos recortados con el operador máximo, $\mu_{\text{salida}}(v) = \max\bigl(\mu'_{\text{Media}}(v), \mu'_{\text{Alta}}(v)\bigr)$. Para obtener una expresión explícita se analiza el universo por intervalos. Para $v \le 30$ ambos conjuntos valen cero. Entre $30$ y $110/3$ solo Media es positivo, por lo que la salida sigue su pendiente ascendente. Entre $110/3$ y $190/3$, Media vale $1/3$ y Alta no supera ese valor, de modo que el máximo es $1/3$. Finalmente, para $v > 190/3$ Alta vale $1/3$ mientras Media desciende, y el máximo vuelve a ser $1/3$. El conjunto agregado es entonces:
+\[
+\mu_{\text{salida}}(v) =
+\begin{cases}
+0, & 0 \le v \le 30, \\[4pt]
+\dfrac{v - 30}{20}, & 30 < v < \frac{110}{3}, \\[8pt]
+\dfrac{1}{3}, & \frac{110}{3} \le v \le 100.
+\end{cases}
+\]
+Gráficamente, este conjunto está formado por un triángulo rectángulo entre $30$ y $110/3$ seguido de un rectángulo de altura $1/3$ que se extiende hasta $100$, como se observa en la Figura~4.
+
+\begin{center}
+\begin{minipage}{\textwidth}
+\centering
+\begin{tikzpicture}[x=0.1cm, y=4cm]
+  % Ejes
+  \draw[-{Stealth[length=2mm]}] (0,0) -- (108,0) node[below] {$v$ (\%)};
+  \draw[-{Stealth[length=2mm]}] (0,0) -- (0,1.15) node[left] {$\mu(v)$};
+  \foreach \x in {0,20,40,60,80,100}
+    \draw (\x,0.02) -- (\x,-0.02) node[below, font=\footnotesize] {\x};
+  \draw (1,1) -- (-1,1) node[left, font=\footnotesize] {$1$};
+  \draw (1,0.3333) -- (-1,0.3333) node[left, font=\footnotesize] {$1/3$};
+  % Conjuntos originales de la velocidad
+  \draw[gray, dashed] (0,1) -- (20,1) -- (45,0);
+  \draw[gray, dashed] (30,0) -- (50,1) -- (70,0);
+  \draw[gray, dashed] (55,0) -- (80,1) -- (100,1);
+  \node[gray, font=\footnotesize] at (10,1.07) {Baja};
+  \node[gray, font=\footnotesize] at (50,1.07) {Media};
+  \node[gray, font=\footnotesize] at (90,1.07) {Alta};
+  % Conjunto agregado
+  \fill[blue!15] (30,0) -- (36.667,0.3333) -- (100,0.3333) -- (100,0) -- cycle;
+  \draw[very thick, blue!60!black] (0,0) -- (30,0) -- (36.667,0.3333) -- (100,0.3333) -- (100,0);
+  % Centroide
+  \draw[thick, red!70!black] (66.64,0) -- (66.64,0.55)
+    node[above, font=\footnotesize] {$z^{*} \approx 66.64$};
+\end{tikzpicture}\par
+\small Figura 4. Conjunto de salida agregado (área sombreada) para $T = 28\,^\circ$C y $H = 60\,\%$. En gris se muestran los conjuntos originales de la velocidad.
+\end{minipage}
+\end{center}
+
+\subsection{Paso 5: defuzzificación por el método del centroide}
+
+Por último, el conjunto agregado se convierte en un solo valor mediante el centroide:
+\[
+z^{*} = \frac{\int_{0}^{100} v \, \mu_{\text{salida}}(v) \, dv}{\int_{0}^{100} \mu_{\text{salida}}(v) \, dv}.
+\]
+Como $\mu_{\text{salida}}$ está definida por partes, cada integral se separa en el tramo inclinado y el tramo constante; el intervalo de $0$ a $30$ no aporta porque allí la función vale cero.
+
+El denominador corresponde al área total bajo el conjunto:
+\begin{align*}
+\int_{0}^{100} \mu_{\text{salida}}(v)\,dv
+&= \int_{30}^{110/3} \frac{v - 30}{20}\,dv + \int_{110/3}^{100} \frac{1}{3}\,dv
+= \left[\frac{(v - 30)^2}{40}\right]_{30}^{110/3} + \frac{1}{3}\left(100 - \frac{110}{3}\right) \\
+&= \frac{(20/3)^2}{40} + \frac{190}{9}
+= \frac{10}{9} + \frac{190}{9}
+= \frac{200}{9} \approx 22.22.
+\end{align*}
+
+El numerador corresponde al momento del área respecto al origen:
+\begin{align*}
+\int_{0}^{100} v\,\mu_{\text{salida}}(v)\,dv
+&= \frac{1}{20}\int_{30}^{110/3} (v^2 - 30v)\,dv + \frac{1}{3}\int_{110/3}^{100} v\,dv \\
+&= \frac{1}{20}\left[\frac{v^3}{3} - 15v^2\right]_{30}^{110/3} + \frac{1}{6}\left[v^2\right]_{110/3}^{100} \\
+&= \frac{3100}{81} + \frac{38950}{27}
+= \frac{119950}{81} \approx 1480.86.
+\end{align*}
+
+Dividiendo ambos resultados se obtiene:
+\[
+z^{*} = \frac{119950/81}{200/9} = \frac{2399}{36} \approx 66.64\,\%.
+\]
+
+Este resultado puede comprobarse por geometría, descomponiendo el área en sus dos figuras. El triángulo tiene área $\frac{1}{2}\cdot\frac{20}{3}\cdot\frac{1}{3} = \frac{10}{9}$ y su centroide está a dos tercios de su base medidos desde el vértice en $30$, es decir, en $v = 30 + \frac{40}{9} \approx 34.44$. El rectángulo tiene área $\frac{190}{3}\cdot\frac{1}{3} = \frac{190}{9}$ y su centroide está en el punto medio de su base, $v = \frac{1}{2}\left(\frac{110}{3} + 100\right) \approx 68.33$. El promedio ponderado por las áreas es
+\[
+z^{*} = \frac{\frac{10}{9}(34.44) + \frac{190}{9}(68.33)}{\frac{200}{9}} \approx 66.64\,\%,
+\]
+que coincide con el valor obtenido por integración.
+
+\subsection{Interpretación del resultado}
+
+Para una temperatura de $28\,^\circ$C y una humedad relativa de $60\,\%$, el controlador recomienda que el ventilador gire aproximadamente al $66.64\,\%$ de su velocidad máxima. Este valor se encuentra entre el pico del conjunto Media ($50\,\%$) y el inicio de la zona plena del conjunto Alta ($80\,\%$), lo que corresponde a lo que una persona describiría como una velocidad media-alta. La recomendación es razonable, ya que $28\,^\circ$C está justo en la frontera entre un ambiente templado y uno caliente, y la humedad es moderadamente elevada.
+
+También vale la pena observar que, aunque Media y Alta quedaron recortados a la misma altura de $1/3$, el centroide se desplaza hacia las velocidades altas. Esto ocurre porque el conjunto Alta recortado se extiende hasta el $100\,\%$ y aporta una mayor área al conjunto agregado, lo que muestra que en el método del centroide influye tanto la altura de activación como la forma y el ancho de los conjuntos de salida.
+
+En contraste, un sistema clásico con un umbral fijo en $28\,^\circ$C tendría que decidir entre apagar el ventilador o encenderlo a máxima potencia, y no tomaría en cuenta la humedad. El controlador difuso, en cambio, entrega una velocidad intermedia que combina ambas variables de forma gradual. Este mismo caso sirve como punto de referencia para la simulación de la siguiente sección; al usar herramientas que discretizan el universo de salida, como scikit-fuzzy, pueden aparecer pequeñas diferencias en los decimales según la resolución utilizada.
+
+\section{Simulación y análisis de resultados}
+% Persona 5: simulación con 3 a 4 casos de prueba, comparación con
+% el cálculo manual y comparación contra un sistema clásico con
+% umbrales fijos.
+
+\section{Conclusiones y recomendaciones}
+% Pendiente de asignar. La tarea pide incluir recomendaciones o
+% conclusiones.
+
+% ============================================================
+% REFERENCIAS (Persona 1). Se pueden agregar más con \bibitem.
+% ============================================================
+\begin{thebibliography}{9}
+\addcontentsline{toc}{section}{\refname}
+
+\bibitem{zadeh1965}
+Zadeh, L. A. (1965). Fuzzy sets. \emph{Information and Control}, 8(3), 338--353.
+
+\bibitem{mamdani1975}
+Mamdani, E. H. y Assilian, S. (1975). An experiment in linguistic synthesis with a fuzzy logic controller. \emph{International Journal of Man-Machine Studies}, 7(1), 1--13.
+
+\end{thebibliography}
+
+\end{document}
